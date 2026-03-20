@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hub-Spoke 운영모델 — S&I 코퍼레이션</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{
+  --blue:#185FA5;--blue-lt:#ddeaf7;--blue-dk:#0C447C;
+  --teal:#0F6E56;--teal-lt:#c8eede;--teal-dk:#085041;
+  --amber:#854F0B;--amber-lt:#f5e2c0;--amber-dk:#633806;
+  --purple:#534AB7;--purple-lt:#EEEDFE;--purple-dk:#3C3489;
+  --red:#E24B4A;--red-lt:#FCEBEB;--red-dk:#791F1F;
+  --gray-50:#fafaf7;--gray-100:#f7f6f2;--gray-200:#eeece6;
+  --gray-400:#b4b2a9;--gray-600:#5f5e5a;--gray-900:#1e1d1b;
+  --r:10px;--rl:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--gray-100);color:var(--gray-900);min-height:100vh;display:flex;flex-direction:column}
+header{background:#fff;border-bottom:1px solid var(--gray-200);padding:14px 28px;display:flex;align-items:center;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-mark{width:34px;height:34px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.logo-text h1{font-size:14px;font-weight:700;letter-spacing:-.3px}
+.logo-text p{font-size:11px;color:var(--gray-600);font-weight:300;margin-top:1px}
+.tab-nav{display:flex;background:#fff;border-bottom:1px solid var(--gray-200);padding:0 28px;flex-shrink:0;overflow-x:auto}
+.tab-btn{padding:12px 18px;font-size:13px;font-weight:500;color:var(--gray-600);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .18s;font-family:inherit}
+.tab-btn:hover{color:var(--gray-900)}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.page{display:none;flex:1;overflow-y:auto}
+.page.active{display:flex;flex-direction:column}
+/* simulator */
+.sim-wrap{display:grid;grid-template-columns:1fr 290px;gap:16px;padding:20px 24px;flex:1;max-width:1100px;width:100%;margin:0 auto}
+.canvas-card{background:#fff;border-radius:var(--rl);border:1px solid var(--gray-200);overflow:hidden;display:flex;flex-direction:column}
+.canvas-toolbar{padding:12px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn{padding:7px 15px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit;border:1px solid var(--gray-200);background:var(--gray-100);color:var(--gray-900)}
+.btn:hover{background:var(--gray-200)}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal-dk)}
+.btn.primary:hover{background:var(--teal-dk)}
+.btn:disabled{opacity:.4;cursor:default}
+.mode-group{display:flex;background:var(--gray-100);border-radius:8px;padding:3px;margin-left:auto}
+.mode-btn{padding:5px 13px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:500;color:var(--gray-600);cursor:pointer;transition:all .18s;font-family:inherit}
+.mode-btn.active{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;border-bottom:1px solid var(--gray-200)}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600)}
+.leg-dot{width:9px;height:9px;border-radius:50%}
+canvas{display:block;width:100%;height:460px}
+@keyframes hint-pulse{0%,100%{box-shadow:0 0 0 0 rgba(24,95,165,.4)}60%{box-shadow:0 0 0 6px rgba(24,95,165,0)}}
+@keyframes svg-glow{0%,100%{opacity:1}50%{opacity:.55}}
+.click-hint{animation:hint-pulse 1.6s ease-out 4}
+.svg-node-hint{animation:svg-glow 1.4s ease-in-out 4}
+.step-strip{display:flex;border-top:1px solid var(--gray-200);flex-shrink:0}
+.step-pill{flex:1;padding:9px 4px;text-align:center;font-size:11px;font-weight:500;color:var(--gray-600);background:var(--gray-100);cursor:pointer;border-right:1px solid var(--gray-200);line-height:1.35;transition:all .18s}
+.step-pill:last-child{border-right:none}
+.step-pill:hover{background:var(--gray-200)}
+.step-pill.active{background:var(--blue-lt);color:var(--blue-dk)}
+.step-pill.done{background:#e6f7f1;color:var(--teal-dk)}
+.step-pill .pt{font-size:10px;font-weight:400;display:block;margin-top:2px;opacity:.7}
+.panel{display:flex;flex-direction:column;gap:12px}
+.card{background:#fff;border-radius:var(--rl);border:1px solid var(--gray-200);padding:16px 18px}
+.card-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px}
+.card h3{font-size:14px;font-weight:700;margin-bottom:6px;line-height:1.4}
+.card p{font-size:12px;color:var(--gray-600);line-height:1.7}
+.actors{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.actor{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px}
+.actor-ioc{background:var(--blue-lt);color:var(--blue-dk)}
+.actor-hub{background:var(--teal-lt);color:var(--teal-dk)}
+.actor-spoke{background:var(--amber-lt);color:var(--amber-dk)}
+.actor-rms{background:var(--purple-lt);color:var(--purple-dk)}
+.tl{display:flex;align-items:center;gap:8px;margin-top:12px}
+.tl-time{font-family:'DM Mono',monospace;font-size:11px;color:var(--gray-600);min-width:44px}
+.tl-track{flex:1;height:5px;background:var(--gray-200);border-radius:3px;overflow:hidden}
+.tl-fill{height:100%;border-radius:3px;background:var(--teal);transition:width .5s cubic-bezier(.4,0,.2,1)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{background:var(--gray-100);border-radius:var(--r);padding:10px 12px}
+.stat .val{font-size:17px;font-weight:700}
+.stat .lbl{font-size:10px;color:var(--gray-600);margin-top:2px;line-height:1.4}
+/* content pages */
+.content-page{padding:28px;max-width:1000px;width:100%;margin:0 auto}
+.section-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.section-sub{font-size:13px;color:var(--gray-600);margin-bottom:24px;line-height:1.6}
+/* cost */
+.cost-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.cost-card{border-radius:var(--rl);border:1px solid var(--gray-200);overflow:hidden}
+.cost-card-head{padding:14px 18px;font-size:13px;font-weight:700}
+.cost-card-head.old{background:var(--red-lt);color:var(--red-dk)}
+.cost-card-head.new{background:var(--teal-lt);color:var(--teal-dk)}
+.cost-card-body{background:#fff;padding:16px 18px}
+.cost-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--gray-200);font-size:13px}
+.cost-row:last-child{border-bottom:none}
+.cost-row .item{color:var(--gray-600)}
+.cost-row .amount{font-weight:700;font-family:'DM Mono',monospace}
+.cost-row .amount.down{color:var(--teal)}
+.cost-row .amount.up{color:var(--red)}
+.cost-total{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;font-size:14px;font-weight:700;border-top:2px solid}
+.cost-total.old{border-color:var(--red-lt);background:var(--red-lt);color:var(--red-dk)}
+.cost-total.new{border-color:var(--teal-lt);background:var(--teal-lt);color:var(--teal-dk)}
+.effect-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.effect-box{background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);padding:18px;text-align:center}
+.effect-box .big{font-size:28px;font-weight:700;margin-bottom:4px}
+.effect-box .eff-lbl{font-size:12px;color:var(--gray-600);line-height:1.5}
+.effect-box.hi{border-color:var(--teal);background:var(--teal-lt)}
+/* criteria */
+.criteria-table{width:100%;border-collapse:collapse;background:#fff;border-radius:var(--rl);overflow:hidden;border:1px solid var(--gray-200);margin-bottom:20px}
+.criteria-table th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gray-600);background:var(--gray-100);border-bottom:1px solid var(--gray-200)}
+.criteria-table td{padding:11px 14px;font-size:12px;border-bottom:1px solid var(--gray-200);vertical-align:top;line-height:1.6}
+.criteria-table tr:last-child td{border-bottom:none}
+.criteria-table tr:hover td{background:var(--gray-50)}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-right:3px}
+.badge-o{background:var(--teal-lt);color:var(--teal-dk)}
+.badge-x{background:var(--red-lt);color:var(--red-dk)}
+.badge-tri{background:var(--amber-lt);color:var(--amber-dk)}
+.excl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.excl-box{background:#fff;border:1px solid var(--gray-200);border-radius:var(--r);padding:12px 14px}
+.excl-box .et{font-weight:700;margin-bottom:4px;font-size:12px}
+.excl-box .er{color:var(--gray-600);font-size:11px;line-height:1.5}
+/* sla */
+.sla-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.sla-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);overflow:hidden}
+.sla-head{padding:16px 18px 12px}
+.sla-lv{font-size:11px;font-weight:700;letter-spacing:.06em;margin-bottom:6px}
+.sla-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.sla-target{font-size:11px;color:var(--gray-600);line-height:1.5}
+.sla-body{padding:0 18px 16px;border-top:1px solid var(--gray-200);margin-top:12px}
+.sla-row{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--gray-200);font-size:12px}
+.sla-row:last-child{border-bottom:none}
+.sla-row .si{width:14px;height:14px;border-radius:50%;flex-shrink:0;margin-top:1px}
+.sla-row .st{color:var(--gray-600);line-height:1.5}
+.sla-price{padding:11px 18px;border-top:1px solid var(--gray-200);display:flex;justify-content:space-between;align-items:center;background:var(--gray-50)}
+.sla-price .lv-lbl{font-size:11px;color:var(--gray-600)}
+.sla-price .lv-val{font-size:12px;font-weight:700;font-family:'DM Mono',monospace}
+.lv1 .sla-head{background:var(--gray-100)}.lv1 .sla-lv{color:var(--gray-600)}
+.lv2 .sla-head{background:var(--blue-lt)}.lv2 .sla-lv{color:var(--blue-dk)}
+.lv3 .sla-head{background:var(--purple-lt)}.lv3 .sla-lv{color:var(--purple-dk)}
+/* plc */
+.plc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:24px}
+.plc-card{background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);overflow:hidden}
+.plc-head{padding:14px 18px;display:flex;align-items:center;gap:10px}
+.plc-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.plc-head-text .plc-type{font-size:10px;font-weight:700;letter-spacing:.07em;opacity:.7}
+.plc-head-text .plc-name{font-size:14px;font-weight:700}
+.plc-body{padding:0 18px 16px}
+.plc-item{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray-200);font-size:12px}
+.plc-item:last-child{border-bottom:none}
+.plc-item .pi-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.plc-item .pi-text{color:var(--gray-600);line-height:1.6}
+.plc-item .pi-text strong{color:var(--gray-900);font-weight:700}
+.plc-kpi{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--gray-200);background:var(--gray-50)}
+.kpi-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px}
+footer{text-align:center;padding:12px;font-size:11px;color:var(--gray-400);border-top:1px solid var(--gray-200);background:#fff;flex-shrink:0}
+@media(max-width:720px){
+  .sim-wrap{grid-template-columns:1fr}
+  .cost-grid,.sla-grid,.plc-grid{grid-template-columns:1fr}
+  .effect-grid,.excl-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div class="logo-text">
+      <h1>Hub-Spoke 운영모델</h1>
+      <p>S&amp;I 코퍼레이션 원격관제서비스팀</p>
+    </div>
+  </div>
+</header>
+
+<nav class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('sim',this)">운영 시뮬레이터</button>
+  <button class="tab-btn" onclick="showTab('cost',this)">도입 전/후 비용 비교</button>
+  <button class="tab-btn" onclick="showTab('criteria',this)">사업장 선정 기준</button>
+  <button class="tab-btn" onclick="showTab('sla',this)">운영 수준별 서비스 패키지</button>
+  <button class="tab-btn" onclick="showTab('plc',this)">AM·PM·FM·LM 결과물</button>
+  <button class="tab-btn" onclick="showTab('leaflet',this)">Hub-Spoke 솔루션</button>
+</nav>
+<!-- PAGE 1 -->
+<div class="page active" id="page-sim">
+<div class="sim-wrap">
+  <div class="canvas-card">
+    <div class="canvas-toolbar">
+      <button class="btn primary" id="btn-play" onclick="playScenario()">▶ 시나리오 재생</button>
+      <button class="btn" onclick="resetAll()">↺ 초기화</button>
+      <div class="mode-group">
+        <button class="mode-btn active" id="mode-normal" onclick="setMode('normal')">평상시</button>
+        <button class="mode-btn" id="mode-issue" onclick="setMode('issue')">이슈 발생</button>
+      </div>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#185FA5"></div>IOC 통합운영센터</div>
+      <div class="leg"><div class="leg-dot" style="background:#0F6E56"></div>Hub 사업장</div>
+      <div class="leg"><div class="leg-dot" style="background:#BA7517"></div>Spoke 사업장</div>
+      <div class="leg"><div class="leg-dot" style="background:#E24B4A"></div>이슈 발생</div>
+    </div>
+    <canvas id="map"></canvas>
+    <div class="step-strip" id="step-strip"></div>
+  </div>
+  <div class="panel">
+    <div class="card">
+      <div class="card-label">현재 단계</div>
+      <h3 id="d-title">시나리오를 선택하세요</h3>
+      <p id="d-body">재생 버튼을 눌러 Hub-Spoke 운영 흐름을 단계별로 확인하세요.</p>
+      <div class="tl"><span class="tl-time" id="t-time">T+0분</span><div class="tl-track"><div class="tl-fill" id="t-fill" style="width:0%"></div></div></div>
+      <div class="actors" id="d-actors"></div>
+    </div>
+    <div class="card">
+      <div class="card-label">운영 지표</div>
+      <div class="stats">
+        <div class="stat"><div class="val">야간</div><div class="lbl">운영 시간대</div></div>
+        <div class="stat"><div class="val">0.02건</div><div class="lbl">일평균 RMS 출동</div></div>
+        <div class="stat"><div class="val">4.6점</div><div class="lbl">지휘통제 훈련 만족도</div></div>
+        <div class="stat"><div class="val" id="s-time">-</div><div class="lbl">대응 완료까지</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">구조 요약</div>
+      <p><strong style="color:var(--blue-dk)">IOC</strong>가 전체를 원격 관제하고, <strong style="color:var(--teal-dk)">Hub</strong> 거점 인력이 인근 <strong style="color:var(--amber-dk)">Spoke</strong> 사업장을 지원합니다. 야간 무인화로 인건비를 절감하면서 비상 대응 품질을 유지합니다.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 2: COST -->
+<div class="page" id="page-cost">
+<div class="content-page">
+  <div class="section-title">도입 전/후 비용 비교</div>
+  <div class="section-sub">소형 사업장 5개 클러스터 기준 야간 운영 비용 시뮬레이션 (월 단위)</div>
+  <div class="cost-grid">
+    <div class="cost-card">
+      <div class="cost-card-head old">기존 단독 운영 모델</div>
+      <div class="cost-card-body">
+        <div class="cost-row"><span class="item">야간 당직 인건비 × 5개소</span><span class="amount up">₩12,500,000</span></div>
+        <div class="cost-row"><span class="item">협력사 관리 비용</span><span class="amount up">₩2,000,000</span></div>
+        <div class="cost-row"><span class="item">개별 긴급출동 비용</span><span class="amount up">₩800,000</span></div>
+        <div class="cost-row"><span class="item">사고 후 처리 비용</span><span class="amount up">₩1,200,000</span></div>
+        <div class="cost-row"><span class="item">원격 시스템 부재 손실</span><span class="amount up">₩500,000</span></div>
+      </div>
+      <div class="cost-total old"><span>월 합계</span><span>₩17,000,000</span></div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-card-head new">Hub-Spoke 전환 후</div>
+      <div class="cost-card-body">
+        <div class="cost-row"><span class="item">Hub 직영 인건비 (1개소)</span><span class="amount">₩3,500,000</span></div>
+        <div class="cost-row"><span class="item">IOC 관제 서비스 비용</span><span class="amount">₩1,800,000</span></div>
+        <div class="cost-row"><span class="item">RMS 운영 비용</span><span class="amount">₩600,000</span></div>
+        <div class="cost-row"><span class="item">Spoke 보안 당직 (최소)</span><span class="amount">₩2,500,000</span></div>
+        <div class="cost-row"><span class="item">Hub 출동 비용</span><span class="amount down">₩300,000</span></div>
+      </div>
+      <div class="cost-total new"><span>월 합계</span><span>₩8,700,000</span></div>
+    </div>
+  </div>
+  <div class="effect-grid">
+    <div class="effect-box hi"><div class="big" style="color:var(--teal-dk)">49%</div><div class="eff-lbl">월 운영비용 절감<br><span style="font-size:10px">₩8,300,000 절감</span></div></div>
+    <div class="effect-box"><div class="big" style="color:var(--blue-dk)">T+25분</div><div class="eff-lbl">이슈 완결 대응 시간<br><span style="font-size:10px">기존 대비 40% 단축</span></div></div>
+    <div class="effect-box"><div class="big" style="color:var(--purple-dk)">1:5</div><div class="eff-lbl">Hub 인력 커버 비율<br><span style="font-size:10px">Hub 1명 → Spoke 5개소</span></div></div>
+  </div>
+
+  <!-- 항목별 막대 차트 -->
+  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);padding:22px 24px;margin-top:20px">
+    <div style="font-size:12px;font-weight:700;color:var(--gray-600);letter-spacing:.06em;text-transform:uppercase;margin-bottom:16px">항목별 비용 비교</div>
+    <div id="bar-chart" style="display:flex;flex-direction:column;gap:14px"></div>
+    <div style="display:flex;gap:16px;margin-top:18px;padding-top:14px;border-top:1px solid var(--gray-200)">
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-600)"><div style="width:12px;height:12px;border-radius:2px;background:#f5c1c1;flex-shrink:0"></div>기존 단독 운영</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--gray-600)"><div style="width:12px;height:12px;border-radius:2px;background:#1D9E75;flex-shrink:0"></div>Hub-Spoke 전환 후</div>
+    </div>
+  </div>
+
+  <!-- 연간 누적 절감 차트 -->
+  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);padding:22px 24px;margin-top:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--gray-600);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">연간 누적 절감액</div>
+        <div style="font-size:12px;color:var(--gray-600)">초기 셋업 비용 차감 후 실질 절감 추이 (5개 클러스터 기준)</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-weight:700;color:var(--teal-dk)" id="annual-save">₩99,600,000</div>
+        <div style="font-size:11px;color:var(--gray-600)">12개월 순절감 (셋업비 차감)</div>
+      </div>
+    </div>
+    <canvas id="line-chart" style="width:100%;height:200px;display:block"></canvas>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-200)">
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--gray-900)">₩20,000,000</div><div style="font-size:11px;color:var(--gray-600);margin-top:2px">초기 셋업 비용 (RMS+교육)</div></div>
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--teal-dk)">3개월</div><div style="font-size:11px;color:var(--gray-600);margin-top:2px">손익분기점 도달</div></div>
+      <div style="text-align:center"><div style="font-size:16px;font-weight:700;color:var(--blue-dk)">₩179,600,000</div><div style="font-size:11px;color:var(--gray-600);margin-top:2px">2년 누적 순절감</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+(function(){
+  const bars=[
+    {label:'야간 당직 인건비',old:12500000,nw:3500000},
+    {label:'관리·협력사 비용',old:2000000,nw:1800000},
+    {label:'긴급출동 비용',old:800000,nw:300000},
+    {label:'사고 후 처리',old:1200000,nw:0},
+    {label:'RMS·원격 비용',old:500000,nw:600000},
+    {label:'보안 당직 (Spoke)',old:0,nw:2500000},
+  ];
+  const maxVal=13000000;
+  const el=document.getElementById('bar-chart');
+  bars.forEach(b=>{
+    const pOld=Math.round(b.old/maxVal*100);
+    const pNew=Math.round(b.nw/maxVal*100);
+    const fmt=v=>v===0?'—':'₩'+(v/10000).toLocaleString()+'만';
+    el.innerHTML+=`
+    <div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--gray-600)">${b.label}</span>
+        <span style="font-size:11px;font-family:'DM Mono',monospace;color:var(--gray-600)">${fmt(b.old)} → <strong style="color:${b.nw<b.old?'var(--teal)':'var(--amber)'}">${fmt(b.nw)}</strong></span>
+      </div>
+      <div style="position:relative;height:22px;background:var(--gray-100);border-radius:4px;overflow:hidden">
+        <div class="bar-fill" data-w="${pOld}" style="position:absolute;left:0;top:0;height:100%;width:0%;background:#f5c1c1;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1)"></div>
+        <div class="bar-fill2" data-w="${pNew}" style="position:absolute;left:0;top:0;height:100%;width:0%;background:#1D9E75;opacity:.85;border-radius:4px;transition:width 1s cubic-bezier(.4,0,.2,1) .15s"></div>
+      </div>
+    </div>`;
+  });
+  setTimeout(()=>{
+    document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%');
+    document.querySelectorAll('.bar-fill2').forEach(b=>b.style.width=b.dataset.w+'%');
+  },200);
+
+  /* line chart */
+  const canvas=document.getElementById('line-chart');
+  const setupCost=20000000;
+  const monthSave=8300000;
+  function drawLine(){
+    const W=canvas.offsetWidth;const H=200;
+    canvas.width=W;canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    const months=13;
+    const padL=54,padR=20,padT=16,padB=32;
+    const cW=W-padL-padR,cH=H-padT-padB;
+    const maxY=120000000;
+    function xp(m){return padL+m/12*cW;}
+    function yp(v){return padT+cH-(v/maxY*cH);}
+
+    ctx.strokeStyle='#eeece6';ctx.lineWidth=0.5;
+    [0,30000000,60000000,90000000,120000000].forEach(v=>{
+      const y=yp(v);
+      ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(W-padR,y);ctx.stroke();
+      ctx.fillStyle='#b4b2a9';ctx.font='10px sans-serif';ctx.textAlign='right';
+      ctx.fillText('₩'+(v/10000000)+'천만',padL-4,y+3.5);
+    });
+    [0,3,6,9,12].forEach(m=>{
+      const x=xp(m);
+      ctx.fillStyle='#b4b2a9';ctx.font='10px sans-serif';ctx.textAlign='center';
+      ctx.fillText(m+'개월',x,H-padB+14);
+    });
+
+    /* old: flat line at 0 (relative — no savings) */
+    ctx.beginPath();ctx.strokeStyle='#f09595';ctx.lineWidth=2;ctx.setLineDash([5,4]);
+    ctx.moveTo(xp(0),yp(0));ctx.lineTo(xp(12),yp(0));ctx.stroke();ctx.setLineDash([]);
+
+    /* new: cumulative savings - setup */
+    const pts=[];
+    for(let m=0;m<=12;m++){
+      const cum=monthSave*m-setupCost;
+      pts.push({x:xp(m),y:yp(Math.max(-setupCost,cum))});
+    }
+    /* fill under */
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x,yp(0));
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x,yp(0));
+    ctx.closePath();
+    ctx.fillStyle='rgba(29,158,117,.08)';ctx.fill();
+
+    ctx.beginPath();ctx.strokeStyle='#1D9E75';ctx.lineWidth=2.5;ctx.setLineDash([]);
+    pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+
+    /* BEP dot at month 3 */
+    const bep=pts[3];
+    ctx.beginPath();ctx.arc(bep.x,bep.y,5,0,Math.PI*2);
+    ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#1D9E75';ctx.lineWidth=2;ctx.stroke();
+    ctx.fillStyle='#0F6E56';ctx.font='bold 10px sans-serif';ctx.textAlign='center';
+    ctx.fillText('BEP',bep.x,bep.y-10);
+
+    /* end dot */
+    const last=pts[12];
+    ctx.beginPath();ctx.arc(last.x,last.y,5,0,Math.PI*2);
+    ctx.fillStyle='#1D9E75';ctx.fill();
+  }
+  function initLine(){
+    if(canvas.offsetWidth>0){drawLine();}
+    else setTimeout(initLine,100);
+  }
+
+  /* trigger when tab becomes visible */
+  const tabBtn=document.querySelectorAll('.tab-btn')[1];
+  const origShow=window.showTab;
+  window.showTab=function(id,btn){
+    origShow(id,btn);
+    if(id==='cost'){
+      setTimeout(()=>{
+        drawLine();
+        document.querySelectorAll('.bar-fill').forEach(b=>b.style.width=b.dataset.w+'%');
+        document.querySelectorAll('.bar-fill2').forEach(b=>b.style.width=b.dataset.w+'%');
+      },80);
+    }
+  };
+  new ResizeObserver(()=>{if(document.getElementById('page-cost').classList.contains('active'))drawLine();}).observe(canvas.parentElement);
+})();
+
+function lsub(id,btn){
+  ['diag','story','compare'].forEach(k=>{
+    document.getElementById('ls-'+k).style.display=k===id?'block':'none';
+    document.getElementById('lsub-'+k).style.background=k===id?'var(--blue-lt)':'var(--gray-100)';
+    document.getElementById('lsub-'+k).style.color=k===id?'var(--blue-dk)':'var(--gray-600)';
+  });
+  if(id==='compare'&&!cmpInited){cmpInit();cmpInited=true;}
+  if(id==='story'&&!st2Inited){st2Init();st2Inited=true;}
+}
+
+const LDATA={
+  ioc:{tag:'IOC · 통합운영센터',tagBg:'#E6F1FB',tagColor:'#0C447C',title:'단일 인력 한계를 전문가 지휘로 해결',problem:'기존 문제 — 야간 당직 1~2인이 전기·기계·소방을 혼자 커버. 전문 지식 부족으로 오판·지연 발생.',solutions:[{c:'#185FA5',t:'전기·기계·소방 기술사급 전문가 24시간 원격 대기'},{c:'#185FA5',t:'RMS 이상신호 즉시 수신 → 3분 이내 상황 판단'},{c:'#185FA5',t:'화상으로 보안 당직자에게 실시간 작업 지휘'},{c:'#185FA5',t:'여러 Spoke 동시 이슈 발생 시 병렬 조율'}]},
+  hub:{tag:'Hub · 거점 사업장',tagBg:'#E1F5EE',tagColor:'#085041',title:'원격의 한계를 물리적 출동으로 보완',problem:'기존 문제 — 원격 지시만으론 발전기 수동 기동, 배관 차단 등 직접 조작이 불가능.',solutions:[{c:'#0F6E56',t:'직영 시설 전문 인력 상시 대기 → 30분 내 Spoke 도착'},{c:'#0F6E56',t:'IOC 지휘통제 아래 전문 조치 수행 (오판 없음)'},{c:'#0F6E56',t:'Hub 1인이 인근 Spoke 5개소 커버 → 1:5 효율'},{c:'#0F6E56',t:'Hub A·B 독립 운영 → 동시 이슈에도 병렬 대응'}]},
+  spoke:{tag:'Spoke · 야간 무인화 사업장',tagBg:'#FAEEDA',tagColor:'#633806',title:'야간 무인화로 비용 절감, 품질은 유지',problem:'기존 문제 — 야간 시설 당직 인건비 연 9천만 원 수준. 실제 사고 발생 빈도는 일평균 0.02건.',solutions:[{c:'#854F0B',t:'보안 당직자 1명만 상주 → 시설 당직 제거로 비용 절감'},{c:'#854F0B',t:'RMS 센서 25개 포인트 24시간 감시 → 무인화 리스크 최소화'},{c:'#854F0B',t:'이슈 발생 시 IOC+Hub가 즉각 지원 → 품질 유지'},{c:'#854F0B',t:'소형 사업장 중심 적용 → 리스크 낮고 절감 효과 큼'}]}
+};
+function lselect(id){
+  const d=LDATA[id];if(!d)return;
+  document.getElementById('linfo-card').innerHTML=`<div style="display:inline-block;font-size:10px;font-weight:500;padding:3px 10px;border-radius:999px;margin-bottom:10px;background:${d.tagBg};color:${d.tagColor}">${d.tag}</div><div style="font-size:14px;font-weight:500;margin-bottom:8px">${d.title}</div><div style="font-size:12px;color:var(--gray-600);margin-bottom:12px;padding:10px 12px;background:var(--gray-100);border-radius:var(--r);line-height:1.6">${d.problem}</div><div style="display:flex;flex-direction:column;gap:7px">${d.solutions.map(s=>`<div style="display:flex;gap:8px;font-size:12px;line-height:1.5"><div style="width:6px;height:6px;border-radius:50%;background:${s.c};flex-shrink:0;margin-top:5px"></div><span>${s.t}</span></div>`).join('')}</div>`;
+}
+
+const ST2=[
+  {icon:'⚡',bg:'#1a2744',step:'상황 발생',title:'야간 22:10 — 정전 경보',body:'Spoke 3 수변전반 이상으로 건물 전체 정전. 비상발전기 경보 울림. 승강기 2대 멈춤. 입주민 30명 근무 중.',solve:null},
+  {icon:'📡',bg:'#0C447C',step:'STEP 1 · IOC 감지',title:'3분 이내 — IOC가 RMS 경보를 즉시 수신',body:'기존 방식이라면: 야간 당직자 혼자 경보를 듣고 발전기실로 이동. 전문 지식 없이 혼자 판단해야 합니다.',solve:{text:'Hub-Spoke 해결: 통합운영센터 전기 전문가가 RMS 알람 즉시 수신. 화상으로 현장 상황을 원격 파악합니다.',bg:'#E6F1FB',color:'#0C447C',border:'#185FA5'}},
+  {icon:'📞',bg:'#0F6E56',step:'STEP 2 · 지휘통제',title:'5분 — IOC가 보안 당직자에게 작업 지시',body:'기존 방식이라면: 수변전 설비 앞에서 어떻게 해야 할지 몰라 망설이다 시간 낭비. 결국 외부 기술자 호출.',solve:{text:'Hub-Spoke 해결: IOC 전기 기술사가 화상으로 당직자에게 단계별 작업 지시. 비전문가도 전문가 수준 대응.',bg:'#E1F5EE',color:'#085041',border:'#0F6E56'}},
+  {icon:'🚗',bg:'#854F0B',step:'STEP 3 · Hub 출동',title:'8분 — Hub 사업장 전문 인력 출동',body:'기존 방식이라면: 혼자서 정전 대응 + 승강기 갇힘 민원 + 입주민 안내를 동시에 처리 불가.',solve:{text:'Hub-Spoke 해결: Hub 출동팀이 30분 내 현장 도착. IOC 지휘 아래 수변전 전문 조치. 당직자는 민원 대응 집중.',bg:'#FAEEDA',color:'#633806',border:'#854F0B'}},
+  {icon:'✓',bg:'#1D9E75',step:'완결',title:'30분 이내 — 복전 완료',body:'기존 방식 결과: 55분 이상, 전문 인력 부재로 2차 피해 위험, 원인 미파악.\nHub-Spoke 결과: 30분 내 복전 완료 → 고객 보고서 자동 발송 → 원인 분석까지 완결.',solve:{text:'Hub-Spoke가 해결하는 방식: 전문가 지휘통제 + 물리적 출동의 결합으로 품질과 속도를 동시에 확보.',bg:'#E1F5EE',color:'#085041',border:'#0F6E56'}},
+];
+let st2Cur=0,st2Inited=false;
+function st2Init(){
+  const dots=document.getElementById('st2-dots');
+  ST2.forEach((_,i)=>{const d=document.createElement('div');d.style.cssText=`width:8px;height:8px;border-radius:50%;background:var(--gray-200);cursor:pointer;transition:all .2s`;d.onclick=()=>st2Go(i);dots.appendChild(d);});
+  st2Go(0);
+}
+function st2Go(i){
+  st2Cur=i;const s=ST2[i];
+  document.getElementById('st2-visual').style.background=s.bg;
+  document.getElementById('st2-visual').textContent=s.icon;
+  document.getElementById('st2-step').textContent=s.step;
+  document.getElementById('st2-title').textContent=s.title;
+  document.getElementById('st2-body').textContent=s.body;
+  const sv=document.getElementById('st2-solve');
+  if(s.solve){sv.style.display='block';sv.style.background=s.solve.bg;sv.style.color=s.solve.color;sv.style.borderColor=s.solve.border;sv.textContent=s.solve.text;}else{sv.style.display='none';}
+  document.getElementById('st2-btn').textContent=i===ST2.length-1?'↺ 다시 보기':'다음 →';
+  document.querySelectorAll('#st2-dots div').forEach((d,j)=>{d.style.background=j===i?'var(--blue)':j<i?'var(--blue-lt)':'var(--gray-200)';d.style.transform=j===i?'scale(1.3)':'scale(1)';});
+}
+function st2next(){if(st2Cur>=ST2.length-1)st2Go(0);else st2Go(st2Cur+1);}
+function st2prev(){if(st2Cur>0)st2Go(st2Cur-1);}
+
+const CMP_SITS=[
+  {icon:'⚡',title:'야간 22:10 · 정전 발생',sub:'수변전반 이상 · 비상발전기 미가동 · 승강기 2대 멈춤',
+   old:[{t:'T+0',c:'#E24B4A',txt:'경보 발생. 당직자 혼자 수신'},{t:'T+6',c:'#E24B4A',txt:'발전기실 이동. 수변전 조작법 모름'},{t:'T+18',c:'#F09595',txt:'발전기 수동기동 실패 → 외부 기술자 호출'},{t:'T+30',c:'#F09595',txt:'승강기 갇힘 민원 + 정전 동시 처리 불가'},{t:'T+55',c:'#888780',txt:'외부 기술자 도착 후 겨우 복전 완료'}],
+   new:[{t:'T+0',c:'#1D9E75',txt:'RMS → IOC 즉시 수신. 전기 전문가 원격 파악'},{t:'T+3',c:'#1D9E75',txt:'IOC가 화상으로 당직자에게 단계별 작업 지시'},{t:'T+8',c:'#1D9E75',txt:'발전기 수동 기동 성공. 승강기 순차 복구'},{t:'T+12',c:'#0F6E56',txt:'Hub 출동팀 도착 → 수변전 전문 점검 착수'},{t:'T+30',c:'#085041',txt:'복전 완료 + 원인 분석 + 고객 보고서 발송'}],
+   vOld:{n:'55분+',l:'복전 소요 시간\n전문 인력 부재'},vNew:{n:'30분 이내',l:'복전 완료 + 보고서\nIOC 지휘 + Hub 출동'}},
+  {icon:'🔔',title:'새벽 02:00 · 화재경보 발생',sub:'3층 기계실 수신반 경보 · 실화재 여부 불명확',
+   old:[{t:'T+0',c:'#E24B4A',txt:'경보 발생. 당직자 혼자 3층으로 이동'},{t:'T+7',c:'#E24B4A',txt:'현장 확인. 연기 없음. 판단 근거 없어 망설임'},{t:'T+14',c:'#F09595',txt:'불확실해 119 신고 → 소방차 출동'},{t:'T+35',c:'#F09595',txt:'비화재보 판명. 입주사 불만 + 과잉대응 비용'},{t:'T+50',c:'#888780',txt:'수신반 수동 복구. 원인 미파악'}],
+   new:[{t:'T+0',c:'#1D9E75',txt:'화재 경보 → IOC 소방 기술사 즉시 원격 확인'},{t:'T+2',c:'#1D9E75',txt:'CCTV·RMS 분석 → "비화재보" 즉시 판단'},{t:'T+4',c:'#1D9E75',txt:'IOC 지시로 수신반 복구. 119 신고 불필요'},{t:'T+8',c:'#0F6E56',txt:'원인 분석 리포트 자동 생성'},{t:'T+10',c:'#085041',txt:'고객사에 처리 결과 즉시 공유. 신뢰 확보'}],
+   vOld:{n:'50분+',l:'과잉 대응 + 원인 미파악\n입주사 불만'},vNew:{n:'10분 이내',l:'정확한 판단 + 빠른 복구\n불필요 출동 없음'}},
+  {icon:'💧',title:'야간 01:30 · 누수 경보',sub:'고수위 경보 + 배수펌프 이상 · 지하층 침수 위험',
+   old:[{t:'T+0',c:'#E24B4A',txt:'고수위 경보. 당직자 지하층 이동'},{t:'T+8',c:'#E24B4A',txt:'어느 배관을 차단할지 모름'},{t:'T+20',c:'#F09595',txt:'잘못된 밸브 차단 → 피해 확산'},{t:'T+40',c:'#F09595',txt:'배수펌핑 장비 없어 침수 방치'},{t:'T+60',c:'#888780',txt:'다음날 시설팀 출근 후 복구. 2차 피해'}],
+   new:[{t:'T+0',c:'#1D9E75',txt:'RMS 고수위 경보 → IOC 기계 전문가 즉시 확인'},{t:'T+3',c:'#1D9E75',txt:'배관 도면 분석 → 차단 밸브 위치 정확히 지시'},{t:'T+8',c:'#1D9E75',txt:'IOC 안내로 정확한 밸브 차단. 피해 확산 방지'},{t:'T+15',c:'#0F6E56',txt:'Hub 출동팀 + 배수펌프 장비 현장 도착'},{t:'T+30',c:'#085041',txt:'배수펌핑 완료 + 침수 원인 파악 + 보고서 발송'}],
+   vOld:{n:'2차 피해',l:'잘못된 조치로 피해 확산\n전문 지식 부재'},vNew:{n:'30분 대응',l:'피해 최소화 + 원인 파악\n전문가 원격 지휘'}},
+];
+let cmpTimers=[],cmpInited=false;
+function cmpInit(){cmpSit(0,document.querySelector('[onclick="cmpSit(0,this)"]'));}
+function cmpSit(i,btn){
+  document.querySelectorAll('[onclick^="cmpSit"]').forEach(b=>{b.style.background='var(--gray-100)';b.style.color='var(--gray-600)';b.style.borderColor='var(--gray-200)';});
+  btn.style.background='var(--blue-lt)';btn.style.color='var(--blue-dk)';btn.style.borderColor='var(--blue)';
+  const s=CMP_SITS[i];
+  document.getElementById('cmp-icon').textContent=s.icon;
+  document.getElementById('cmp-title').textContent=s.title;
+  document.getElementById('cmp-sub').textContent=s.sub;
+  document.getElementById('v-oldn').textContent=s.vOld.n;
+  document.getElementById('v-oldl').textContent=s.vOld.l;
+  document.getElementById('v-newn').textContent=s.vNew.n;
+  document.getElementById('v-newl').textContent=s.vNew.l;
+  cmpTimers.forEach(clearTimeout);cmpTimers=[];
+  function buildRows(elId,rows,dir){
+    const el=document.getElementById(elId);el.innerHTML='';
+    rows.forEach(r=>{
+      const d=document.createElement('div');
+      d.style.cssText=`display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:0.5px solid var(--gray-200);font-size:12px;line-height:1.5;opacity:0;transform:translateX(${dir<0?'-':'+'}6px);transition:opacity .35s,transform .35s`;
+      d.innerHTML=`<span style="font-family:var(--font-mono);font-size:10px;font-weight:500;color:${r.c};flex-shrink:0;min-width:40px;padding-top:1px">${r.t}</span><div style="width:6px;height:6px;border-radius:50%;background:${r.c};flex-shrink:0;margin-top:4px"></div><span>${r.txt}</span>`;
+      el.appendChild(d);
+    });
+  }
+  buildRows('cmp-old',s.old,-1);
+  buildRows('cmp-new',s.new,1);
+  document.querySelectorAll('#cmp-old>div,#cmp-new>div').forEach((el,j)=>{
+    cmpTimers.push(setTimeout(()=>{el.style.opacity='1';el.style.transform='translateX(0)';},120+j*140));
+  });
+}
+
+window.lsub=lsub;window.lselect=lselect;window.st2next=st2next;window.st2prev=st2prev;window.st2Go=st2Go;window.cmpSit=cmpSit;
+</script>
+
+<!-- PAGE 3: CRITERIA -->
+<div class="page" id="page-criteria">
+<div class="content-page">
+  <div class="section-title">Hub·Spoke 사업장 선정 기준</div>
+  <div class="section-sub">Hub와 Spoke 대상 사업장을 선정하기 위한 체크리스트와 제외 대상 기준입니다.</div>
+  <div style="font-size:11px;font-weight:700;color:var(--gray-600);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px">Hub 사업장 선정 기준</div>
+  <table class="criteria-table">
+    <thead><tr><th>기준 항목</th><th>조건</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>고용 형태</td><td><span class="badge badge-o">직영</span> 정규직 시설 인력 보유</td><td>협력사 당직 사업장 불가</td></tr>
+      <tr><td>위치</td><td>인근 Spoke와 <strong>차량 30분 이내</strong></td><td>출동 기동성 확보</td></tr>
+      <tr><td>규모</td><td>중형 이상 (3,000평 이상)</td><td>소형은 Hub 기능 부담</td></tr>
+      <tr><td>고객 관계</td><td>장기 계약 안정 사업장</td><td>T.O 협의 가능 여부</td></tr>
+      <tr><td>RMS 설치</td><td><span class="badge badge-o">필수</span> 원격감시시스템 설치 완료</td><td>IOC 연동 필수</td></tr>
+      <tr><td>전문인력</td><td>전기·기계·소방 1개 공종 이상 상주</td><td>비상 대응 역량</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:11px;font-weight:700;color:var(--gray-600);letter-spacing:.05em;text-transform:uppercase;margin-bottom:10px;margin-top:24px">Spoke 사업장 선정 기준</div>
+  <table class="criteria-table" style="margin-bottom:28px">
+    <thead><tr><th>기준 항목</th><th>조건</th><th>적합도</th></tr></thead>
+    <tbody>
+      <tr><td>규모</td><td>소형~중형 (3,000평 미만 우선)</td><td><span class="badge badge-o">최적</span></td></tr>
+      <tr><td>야간 사고 빈도</td><td>일평균 RMS 0.05건 미만</td><td><span class="badge badge-o">적합</span></td></tr>
+      <tr><td>Hub와의 거리</td><td>차량 30분 이내</td><td><span class="badge badge-o">필수</span></td></tr>
+      <tr><td>고객 동의</td><td>야간 인력 효율화 협의 가능</td><td><span class="badge badge-tri">협의 필요</span></td></tr>
+      <tr><td>기존 당직 형태</td><td>협력사 or PJT 계약직 당직</td><td><span class="badge badge-o">전환 용이</span></td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:11px;font-weight:700;color:var(--gray-600);letter-spacing:.05em;text-transform:uppercase;margin-bottom:12px">적용 제외 사업장</div>
+  <div class="excl-grid">
+    <div class="excl-box"><div class="et">IDC (데이터센터)</div><div class="er">24시간 전문 당직 필수, 야간무인화 리스크 과대</div></div>
+    <div class="excl-box"><div class="et">리조트·숙박시설</div><div class="er">야간 투숙객 안전 관련 즉시 대응 필수</div></div>
+    <div class="excl-box"><div class="et">병원</div><div class="er">의료장비·환자 안전 직결, 무인화 불가</div></div>
+    <div class="excl-box"><div class="et">초고층 빌딩</div><div class="er">복잡 설비·대피 체계로 상주 인력 필수</div></div>
+    <div class="excl-box"><div class="et">방송·통신시설</div><div class="er">서비스 중단 시 사회적 영향 과대</div></div>
+    <div class="excl-box"><div class="et">물류센터·공연장</div><div class="er">심야 입출고·공연 종료 후 대응 필수</div></div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 4: SLA -->
+<div class="page" id="page-sla">
+<div class="content-page">
+  <div class="section-title">운영 수준별 서비스 패키지 구조</div>
+  <div class="section-sub">Hub-Spoke 운영 검증을 바탕으로 관리 수준에 따라 선택할 수 있는 서비스 옵션을 제안합니다.</div>
+  <div class="sla-grid">
+    <div class="sla-card lv1">
+      <div class="sla-head">
+        <div class="sla-lv">기본 관제형</div>
+        <div class="sla-name">원격 감시 패키지</div>
+        <div class="sla-target">소형 단독빌딩 · 비용절감 우선 고객</div>
+      </div>
+      <div class="sla-body">
+        <div class="sla-row"><div class="si" style="background:var(--teal)"></div><div class="st">IOC 24시간 원격 모니터링</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--teal)"></div><div class="st">RMS 알람 수신 및 1차 판단</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--teal)"></div><div class="st">월 1회 정기 리포트 제공</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--teal)"></div><div class="st">SOS 콜센터 연결</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--gray-400)"></div><div class="st" style="color:var(--gray-400)">Hub 출동 미포함 (별도)</div></div>
+      </div>
+      <div class="sla-price"><span class="lv-lbl">알람 인지 목표</span><span class="lv-val">3분 이내</span></div>
+    </div>
+    <div class="sla-card lv2">
+      <div class="sla-head">
+        <div class="sla-lv">출동 포함형</div>
+        <div class="sla-name">Hub 출동 포함 패키지</div>
+        <div class="sla-target">중소형 빌딩 · 안정적 운영 원하는 고객</div>
+      </div>
+      <div class="sla-body">
+        <div class="sla-row"><div class="si" style="background:var(--blue)"></div><div class="st">LV1 전체 포함</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--blue)"></div><div class="st">Hub 전문가 야간 출동 대응</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--blue)"></div><div class="st">지휘통제 훈련 분기 1회</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--blue)"></div><div class="st">이상 발생 즉시 고객 알림</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--blue)"></div><div class="st">월 2회 설비 상태 리포트</div></div>
+      </div>
+      <div class="sla-price"><span class="lv-lbl">출동 목표</span><span class="lv-val">감지 후 30분</span></div>
+    </div>
+    <div class="sla-card lv3">
+      <div class="sla-head">
+        <div class="sla-lv">통합 관제형</div>
+        <div class="sla-name">통합 관제 풀패키지</div>
+        <div class="sla-target">중대형 빌딩 · 품질·안전 최우선 고객</div>
+      </div>
+      <div class="sla-body">
+        <div class="sla-row"><div class="si" style="background:var(--purple)"></div><div class="st">LV2 전체 포함</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--purple)"></div><div class="st">AI CCTV 이상행동 감지 연동</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--purple)"></div><div class="st">전기차 화재 감지 시스템</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--purple)"></div><div class="st">예지보전 설비 상태 분석</div></div>
+        <div class="sla-row"><div class="si" style="background:var(--purple)"></div><div class="st">전담 AM 자산 리포트 월 1회</div></div>
+      </div>
+      <div class="sla-price"><span class="lv-lbl">출동 목표</span><span class="lv-val">감지 후 20분</span></div>
+    </div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);padding:18px">
+    <div class="card-label" style="margin-bottom:12px">계약 구조 핵심 원칙</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      <div style="font-size:12px;line-height:1.7;color:var(--gray-600)"><strong style="color:var(--gray-900);display:block;margin-bottom:4px">총액 계약</strong>야간 무인화로 절감되는 인건비를 일부 서비스 비용으로 전환. 고객 순 절감 구조 설계</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--gray-600)"><strong style="color:var(--gray-900);display:block;margin-bottom:4px">품질 기준 미달 시 대응</strong>응답·출동 목표 미달 시 원인 분석 및 개선 보고. 투명한 운영으로 신뢰 확보</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--gray-600)"><strong style="color:var(--gray-900);display:block;margin-bottom:4px">단계적 전환</strong>기존 계약 유지 → Spoke 지정 → 3개월 병행 운영 → 야간무인화 순으로 전환</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 5: PLC -->
+<div class="page" id="page-plc">
+<div class="content-page">
+  <div class="section-title">AM·PM·FM·LM 역할별 결과물</div>
+  <div class="section-sub">Hub-Spoke 모델은 단순 시설관리(FM)를 넘어 자산 전 생애주기(PLC)에서 구체적 결과물을 만들어냅니다.</div>
+  <div class="plc-grid">
+    <div class="plc-card">
+      <div class="plc-head" style="background:var(--blue-lt)">
+        <div class="plc-icon" style="background:var(--blue);color:#fff">AM</div>
+        <div class="plc-head-text"><div class="plc-type" style="color:var(--blue-dk)">Asset Management</div><div class="plc-name">자산 관리</div></div>
+      </div>
+      <div class="plc-body">
+        <div class="plc-item"><div class="pi-dot" style="background:var(--blue)"></div><div class="pi-text"><strong>설비 수명 예측 리포트</strong> — IOC RMS 데이터 기반 주요 설비 잔여 수명 분석 및 교체 시점 제안</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--blue)"></div><div class="pi-text"><strong>투자 우선순위 보고서</strong> — 사업장별 설비 상태 스코어링 및 CapEx 투자 시나리오 제시</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--blue)"></div><div class="pi-text"><strong>예지보전 알람 체계</strong> — AI 기반 이상 패턴 감지로 고장 전 사전 정비 대응</div></div>
+      </div>
+      <div class="plc-kpi">
+        <span class="kpi-tag" style="background:var(--blue-lt);color:var(--blue-dk)">월간 자산 리포트</span>
+        <span class="kpi-tag" style="background:var(--blue-lt);color:var(--blue-dk)">설비 수명 DB</span>
+        <span class="kpi-tag" style="background:var(--blue-lt);color:var(--blue-dk)">CapEx 시나리오</span>
+      </div>
+    </div>
+    <div class="plc-card">
+      <div class="plc-head" style="background:var(--purple-lt)">
+        <div class="plc-icon" style="background:var(--purple);color:#fff">PM</div>
+        <div class="plc-head-text"><div class="plc-type" style="color:var(--purple-dk)">Property Management</div><div class="plc-name">부동산·공간 관리</div></div>
+      </div>
+      <div class="plc-body">
+        <div class="plc-item"><div class="pi-dot" style="background:var(--purple)"></div><div class="pi-text"><strong>야간 운영비 절감 보고서</strong> — Spoke 무인화 전환 후 월별 인건비 절감 실적 수치화</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--purple)"></div><div class="pi-text"><strong>비상주 서비스 상품</strong> — 순회 미화·보안 패트롤·비상주 시설 등 공간별 패키지화</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--purple)"></div><div class="pi-text"><strong>빌딩 운영 효율 지수</strong> — 에너지·공간·인력 효율을 종합한 건물 운영 KPI 대시보드</div></div>
+      </div>
+      <div class="plc-kpi">
+        <span class="kpi-tag" style="background:var(--purple-lt);color:var(--purple-dk)">비용절감 실적서</span>
+        <span class="kpi-tag" style="background:var(--purple-lt);color:var(--purple-dk)">공간 서비스 상품서</span>
+        <span class="kpi-tag" style="background:var(--purple-lt);color:var(--purple-dk)">운영효율 KPI</span>
+      </div>
+    </div>
+    <div class="plc-card">
+      <div class="plc-head" style="background:var(--teal-lt)">
+        <div class="plc-icon" style="background:var(--teal);color:#fff">FM</div>
+        <div class="plc-head-text"><div class="plc-type" style="color:var(--teal-dk)">Facility Management</div><div class="plc-name">시설 운영 관리</div></div>
+      </div>
+      <div class="plc-body">
+        <div class="plc-item"><div class="pi-dot" style="background:var(--teal)"></div><div class="pi-text"><strong>서비스 품질 관리 보고서</strong> — 알람 인지율·출동 시간·처리 완결률 등 월간 품질 기준 달성 현황</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--teal)"></div><div class="pi-text"><strong>Hub-Spoke 운영 표준서</strong> — 비상 시나리오별 대응 매뉴얼·셋업 가이드·견적 제안 Tool</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--teal)"></div><div class="pi-text"><strong>영업 Material</strong> — 패키지(기본·출동·통합)별 상품 제안서·가격 범위 기준표</div></div>
+      </div>
+      <div class="plc-kpi">
+        <span class="kpi-tag" style="background:var(--teal-lt);color:var(--teal-dk)">품질 관리 보고서</span>
+        <span class="kpi-tag" style="background:var(--teal-lt);color:var(--teal-dk)">운영 표준 매뉴얼</span>
+        <span class="kpi-tag" style="background:var(--teal-lt);color:var(--teal-dk)">영업 제안서</span>
+      </div>
+    </div>
+    <div class="plc-card">
+      <div class="plc-head" style="background:var(--amber-lt)">
+        <div class="plc-icon" style="background:var(--amber);color:#fff">LM</div>
+        <div class="plc-head-text"><div class="plc-type" style="color:var(--amber-dk)">Lease Management</div><div class="plc-name">임대 관리 지원</div></div>
+      </div>
+      <div class="plc-body">
+        <div class="plc-item"><div class="pi-dot" style="background:var(--amber)"></div><div class="pi-text"><strong>SOS 콜센터 운영 리포트</strong> — 임차인 민원 접수·처리 현황 및 만족도 트래킹</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--amber)"></div><div class="pi-text"><strong>임차인 만족도 조사</strong> — 분기별 입주사 서비스 만족도 측정 및 개선 보고</div></div>
+        <div class="plc-item"><div class="pi-dot" style="background:var(--amber)"></div><div class="pi-text"><strong>건물 가치 유지 보고서</strong> — 시설 상태·민원 해결률이 임대 경쟁력에 미치는 영향 분석</div></div>
+      </div>
+      <div class="plc-kpi">
+        <span class="kpi-tag" style="background:var(--amber-lt);color:var(--amber-dk)">콜센터 처리 현황</span>
+        <span class="kpi-tag" style="background:var(--amber-lt);color:var(--amber-dk)">임차인 만족도</span>
+        <span class="kpi-tag" style="background:var(--amber-lt);color:var(--amber-dk)">건물가치 분석</span>
+      </div>
+    </div>
+  </div>
+  <div style="background:#fff;border:1px solid var(--gray-200);border-radius:var(--rl);padding:18px">
+    <div class="card-label" style="margin-bottom:10px">팀 미션</div>
+    <p style="font-size:13px;line-height:1.8;color:var(--gray-600)">원격관제 솔루션의 실행력과 전문성 강화를 통한 <strong style="color:var(--gray-900)">PFM 운영 효율화 모델 수립 및 사업전개</strong><br>Hub-Spoke 수립 → 현장 적용 → 상품화 → 신규시장 확대의 선순환 구조를 구축합니다.</p>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 6: LEAFLET 별첨 -->
+<div class="page" id="page-leaflet">
+<div class="content-page" style="max-width:1000px">
+  <div class="section-title">Hub-Spoke가 해결하는 방식</div>
+  <div class="section-sub">같은 내용을 세 가지 방식으로 — 구조 이해, 흐름 체험, 숫자 비교</div>
+
+  <!-- 서브탭 -->
+  <div style="display:flex;gap:0;border:0.5px solid var(--gray-200);border-radius:var(--r);overflow:hidden;margin-bottom:20px">
+    <button onclick="lsub('diag',this)" id="lsub-diag" style="flex:1;padding:10px 4px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:var(--blue-lt);color:var(--blue-dk);font-family:inherit;border-right:0.5px solid var(--gray-200)" class="click-hint">① 구조 다이어그램</button>
+    <button onclick="lsub('story',this)" id="lsub-story" style="flex:1;padding:10px 4px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:var(--gray-100);color:var(--gray-600);font-family:inherit;border-right:0.5px solid var(--gray-200)" class="click-hint">② 단계별 스토리텔링</button>
+    <button onclick="lsub('compare',this)" id="lsub-compare" style="flex:1;padding:10px 4px;font-size:12px;font-weight:500;border:none;cursor:pointer;background:var(--gray-100);color:var(--gray-600);font-family:inherit" class="click-hint">③ Before/After 비교</button>
+  </div>
+
+  <!-- ① 구조 다이어그램 -->
+  <div id="ls-diag">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+      <div style="flex:1;min-width:280px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:6px 10px;background:var(--blue-lt);border-radius:var(--r);border:0.5px solid var(--blue)" class="click-hint">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2.5C5 1.67 5.67 1 6.5 1S8 1.67 8 2.5v4.8l1.2.7c.5.3.8.8.8 1.4v.1c0 1.4-1.1 2.5-2.5 2.5h-2C4.1 12 3 10.9 3 9.5v-3c0-.6.3-1.1.8-1.4L5 4.3V2.5z" stroke="#185FA5" stroke-width="1" fill="#E6F1FB"/></svg>
+          <span style="font-size:11px;font-weight:500;color:var(--blue-dk)">IOC · Hub · Spoke 노드를 클릭해 보세요</span>
+        </div>
+        <svg viewBox="0 0 360 340" style="display:block;width:100%">
+          <defs><marker id="larr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+          <line x1="180" y1="88" x2="100" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="180" y1="88" x2="262" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="82" y1="198" x2="38" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="96" y1="200" x2="108" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="108" y1="200" x2="178" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="258" y1="198" x2="218" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="268" y1="200" x2="288" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="276" y1="198" x2="332" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <g style="cursor:pointer" onclick="lselect('ioc')">
+            <rect x="130" y="36" width="100" height="52" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.5"/>
+            <text x="180" y="58" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">IOC</text>
+            <text x="180" y="76" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#378ADD">통합운영센터</text>
+          </g>
+          <g style="cursor:pointer" onclick="lselect('hub')">
+            <rect x="56" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+            <text x="100" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub A</text>
+            <text x="100" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">강남 거점</text>
+            <rect x="218" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+            <text x="262" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub B</text>
+            <text x="262" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">마포 거점</text>
+          </g>
+          <g style="cursor:pointer" onclick="lselect('spoke')">
+            <rect x="14" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="38" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 1</text><text x="38" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="84" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="108" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 2</text><text x="108" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="154" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="178" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 3</text><text x="178" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
+            <rect x="194" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="218" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 4</text><text x="218" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="264" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="288" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 5</text><text x="288" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="308" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="332" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 6</text><text x="332" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
+          </g>
+        </svg>
+        <div style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:6px">IOC · Hub · Spoke를 클릭하세요</div>
+      </div>
+      <div style="width:260px;flex-shrink:0">
+        <div id="linfo-card" style="background:var(--color-background-primary);border:0.5px solid var(--gray-200);border-radius:var(--rl);padding:18px;min-height:200px">
+          <div style="font-size:13px;color:var(--gray-400);line-height:1.7;display:flex;flex-direction:column;align-items:center;justify-content:center;height:160px;text-align:center">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--blue-lt);border:0.5px solid var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:10px">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 2l1.5 4H3l4 3-1.5 4L9 10.5l3.5 2.5-1.5-4 3.5-2.5H10L8.5 2z" fill="#185FA5" opacity=".4"/><path d="M8 4v8M4 8h8" stroke="#185FA5" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            구성 요소를 <strong style="color:var(--gray-900)">클릭</strong>하면<br>Hub-Spoke가 해결하는<br>방식이 나타납니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 스토리텔링 -->
+  <div id="ls-story" style="display:none">
+    <div style="background:var(--gray-100);border-radius:var(--rl);border:0.5px solid var(--gray-200);overflow:hidden;margin-bottom:14px">
+      <div style="display:flex;align-items:stretch">
+        <div id="st2-visual" style="width:180px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:44px;border-right:0.5px solid var(--gray-200);background:var(--gray-100);transition:background .3s;padding:24px;text-align:center">⚡</div>
+        <div style="padding:22px 20px;flex:1">
+          <div id="st2-step" style="font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--gray-400);margin-bottom:8px">STEP 0 / 4</div>
+          <div id="st2-title" style="font-size:16px;font-weight:500;margin-bottom:10px;line-height:1.4">야간 정전 — Hub-Spoke 대응 흐름</div>
+          <div id="st2-body" style="font-size:13px;color:var(--gray-600);line-height:1.7">야간 정전이 발생한 실제 상황을 단계별로 따라갑니다. 각 단계에서 기존 방식의 한계와 Hub-Spoke가 어떻게 해결하는지 확인하세요.</div>
+          <div id="st2-solve" style="display:none;margin-top:14px;padding:10px 14px;border-radius:var(--r);font-size:12px;font-weight:500;line-height:1.5;border:0.5px solid"></div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-bottom:12px" id="st2-dots"></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="st2prev()" style="padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--gray-200);background:var(--gray-100);color:var(--gray-900);font-family:inherit">← 이전</button>
+      <button onclick="st2next()" id="st2-btn" style="padding:8px 18px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--blue);background:var(--blue-lt);color:var(--blue-dk);font-family:inherit" class="click-hint">다음 단계 →</button>
+      <span style="font-size:11px;color:var(--gray-400);margin-left:4px">버튼을 눌러 단계별로 확인하세요</span>
+    </div>
+  </div>
+
+  <!-- ③ Before/After -->
+  <div id="ls-compare" style="display:none">
+    <div style="background:var(--gray-100);border:0.5px solid var(--gray-200);border-radius:var(--rl);padding:14px 18px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div id="cmp-icon" style="font-size:24px">⚡</div>
+      <div style="flex:1">
+        <div id="cmp-title" style="font-size:14px;font-weight:500;margin-bottom:3px">야간 22:10 · 정전 발생</div>
+        <div id="cmp-sub" style="font-size:12px;color:var(--gray-600)">수변전반 이상 · 비상발전기 미가동 · 승강기 2대 멈춤</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span style="font-size:10px;font-weight:500;color:var(--blue-dk);background:var(--blue-lt);border:0.5px solid var(--blue);padding:3px 8px;border-radius:999px" class="click-hint">상황 선택 ↓</span>
+        <button onclick="cmpSit(0,this)" style="font-size:11px;font-weight:500;padding:4px 12px;border-radius:999px;cursor:pointer;border:0.5px solid var(--blue);background:var(--blue-lt);color:var(--blue-dk);font-family:inherit">정전</button>
+        <button onclick="cmpSit(1,this)" style="font-size:11px;font-weight:500;padding:4px 12px;border-radius:999px;cursor:pointer;border:0.5px solid var(--gray-200);background:var(--gray-100);color:var(--gray-600);font-family:inherit">화재경보</button>
+        <button onclick="cmpSit(2,this)" style="font-size:11px;font-weight:500;padding:4px 12px;border-radius:999px;cursor:pointer;border:0.5px solid var(--gray-200);background:var(--gray-100);color:var(--gray-600);font-family:inherit">누수</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div>
+        <div style="padding:10px 16px;font-size:12px;font-weight:500;background:#F7C1C1;color:#791F1F;border-radius:var(--r) var(--r) 0 0">기존 단독 운영</div>
+        <div id="cmp-old" style="border:0.5px solid var(--gray-200);border-top:none;border-radius:0 0 var(--rl) var(--rl);background:var(--color-background-primary);overflow:hidden"></div>
+      </div>
+      <div>
+        <div style="padding:10px 16px;font-size:12px;font-weight:500;background:#9FE1CB;color:#085041;border-radius:var(--r) var(--r) 0 0">Hub-Spoke</div>
+        <div id="cmp-new" style="border:0.5px solid var(--gray-200);border-top:none;border-radius:0 0 var(--rl) var(--rl);background:var(--color-background-primary);overflow:hidden"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div style="background:#FCEBEB;border:0.5px solid #F09595;border-radius:var(--rl);padding:16px 18px;text-align:center">
+        <div id="v-oldn" style="font-size:26px;font-weight:500;color:#A32D2D;margin-bottom:4px">55분+</div>
+        <div id="v-oldl" style="font-size:11px;color:var(--gray-600);line-height:1.5">복전 소요 시간<br>전문 인력 부재</div>
+      </div>
+      <div style="background:#E1F5EE;border:2px solid #5DCAA5;border-radius:var(--rl);padding:16px 18px;text-align:center">
+        <div id="v-newn" style="font-size:26px;font-weight:500;color:#085041;margin-bottom:4px">30분 이내</div>
+        <div id="v-newl" style="font-size:11px;color:var(--gray-600);line-height:1.5">복전 완료 + 보고서 발송<br>IOC 지휘 + Hub 출동</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<footer>S&amp;I 코퍼레이션 원격관제서비스팀 · Hub-Spoke 운영모델</footer>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='sim')requestAnimationFrame(resize);
+  if(id==='leaflet'){if(typeof cmpInit==='function'&&!cmpInited){cmpInit();cmpInited=true;}}
+}
+const C=document.getElementById('map');
+const ctx=C.getContext('2d');
+const NODES={
+  ioc: {bx:.50,by:.11,r:26,label:'IOC',    sub:'통합운영센터',color:'#185FA5',fill:'#ddeaf7',tc:'#0C447C'},
+  hub1:{bx:.27,by:.40,r:20,label:'Hub A',  sub:'강남 거점',  color:'#0F6E56',fill:'#c8eede',tc:'#085041'},
+  hub2:{bx:.73,by:.40,r:20,label:'Hub B',  sub:'마포 거점',  color:'#0F6E56',fill:'#c8eede',tc:'#085041'},
+  sp1: {bx:.08,by:.76,r:14,label:'Spoke 1',sub:'소형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+  sp2: {bx:.24,by:.80,r:14,label:'Spoke 2',sub:'소형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+  sp3: {bx:.40,by:.80,r:14,label:'Spoke 3',sub:'중형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+  sp4: {bx:.57,by:.80,r:14,label:'Spoke 4',sub:'소형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+  sp5: {bx:.73,by:.80,r:14,label:'Spoke 5',sub:'소형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+  sp6: {bx:.90,by:.76,r:14,label:'Spoke 6',sub:'중형',       color:'#854F0B',fill:'#f5e2c0',tc:'#633806'},
+};
+const EDGES=[
+  {from:'ioc',to:'hub1'},{from:'ioc',to:'hub2'},
+  {from:'hub1',to:'sp1'},{from:'hub1',to:'sp2'},{from:'hub1',to:'sp3'},
+  {from:'hub2',to:'sp4'},{from:'hub2',to:'sp5'},{from:'hub2',to:'sp6'},
+];
+const NS=[
+  {label:'원격 모니터링',time:'상시',fill:5,title:'IOC — 24시간 원격 모니터링',body:'통합운영센터(IOC)가 모든 Spoke 사업장의 RMS 신호를 실시간 수신합니다. 보안 당직자 1명이 야간 현장을 지킵니다.',actors:['IOC','RMS'],active:['ioc'],pulse:[],arrows:[]},
+  {label:'RMS 알람',time:'T+0분',fill:20,title:'Spoke 3 — RMS 알람 수신',body:'Spoke 3에서 기계설비 이상 신호가 감지됩니다. IOC 관제요원이 영상을 통해 현장 상황을 원격 점검합니다.',actors:['IOC','RMS','Spoke'],active:['ioc','sp3'],pulse:['sp3'],arrows:[]},
+  {label:'IOC 판단',time:'T+3분',fill:35,title:'IOC — 대응 수준 판단 및 지휘',body:'현장 영상과 센서 데이터를 분석합니다. 보안 당직자에게 초기 점검을 지시하고, Hub A 시설 전문가에게 출동 준비를 요청합니다.',actors:['IOC','Hub'],active:['ioc','hub1','sp3'],pulse:['ioc'],arrows:[{from:'ioc',to:'hub1'},{from:'ioc',to:'sp3'}]},
+  {label:'Hub 출동',time:'T+8분',fill:60,title:'Hub A — 시설 전문가 현장 출동',body:'Hub A의 직영 시설 전문가(전기/기계)가 차량으로 Spoke 3에 출동합니다. IOC는 이동 중에도 실시간으로 현장 상황을 공유합니다.',actors:['Hub','IOC'],active:['hub1','sp3'],pulse:['hub1'],arrows:[{from:'hub1',to:'sp3'}]},
+  {label:'현장 대응',time:'T+20분',fill:85,title:'현장 완결 처리',body:'Hub 전문가가 설비를 점검하고 이슈를 처리합니다. IOC는 처리 결과를 고객사에 보고하고 RMS 이력을 기록합니다.',actors:['Hub','IOC','Spoke'],active:['hub1','ioc','sp3'],pulse:[],arrows:[{from:'sp3',to:'ioc'}]},
+  {label:'완료 보고',time:'T+25분',fill:100,title:'고객 리포트 발송 완료',body:'이슈 접수부터 처리까지 전 과정이 자동 기록됩니다. 고객에게 원격 처리 결과 리포트가 발송되고 정상 모니터링으로 복귀합니다.',actors:['IOC','Hub'],active:['ioc'],pulse:[],arrows:[]}
+];
+const IS=[
+  {label:'동시 이슈',time:'T+0분',fill:15,title:'Spoke 2, 5 — 동시 이슈 발생',body:'Hub A 권역 Spoke 2와 Hub B 권역 Spoke 5에서 동시에 알람이 발생합니다. 기존 단독 운영이라면 각 사업장이 각자 대응해야 했지만...',actors:['IOC','Spoke'],active:['ioc','sp2','sp5'],pulse:['sp2','sp5'],arrows:[]},
+  {label:'IOC 동시 조율',time:'T+2분',fill:35,title:'IOC — Hub A, B 동시 지휘',body:'IOC가 두 Hub에 동시에 지시를 내립니다. Hub A는 Spoke 2로, Hub B는 Spoke 5로 각각 출동합니다.',actors:['IOC','Hub'],active:['ioc','hub1','hub2'],pulse:['ioc'],arrows:[{from:'ioc',to:'hub1'},{from:'ioc',to:'hub2'}]},
+  {label:'병렬 대응',time:'T+10분',fill:65,title:'Hub A + Hub B — 병렬 출동',body:'두 Hub의 전문가가 각각 해당 Spoke로 출동합니다. 나머지 Spoke(1,3,4,6)는 IOC 원격 감시 하에 정상 운영을 유지합니다.',actors:['Hub','IOC'],active:['hub1','hub2','sp2','sp5'],pulse:[],arrows:[{from:'hub1',to:'sp2'},{from:'hub2',to:'sp5'}]},
+  {label:'완전 해결',time:'T+30분',fill:100,title:'전체 정상화',body:'두 이슈 모두 처리 완료. Hub-Spoke는 Hub 인력이 복수 사업장을 커버하므로 기존 단독 운영 대비 인력 효율이 크게 향상됩니다.',actors:['IOC','Hub','Spoke'],active:['ioc'],pulse:[],arrows:[]}
+];
+let mode='normal',steps=NS,curStep=-1;
+let pRAF=null,aRAF=null,aTimer=null,aAnims=[],SN={};
+function setMode(m){mode=m;steps=m==='normal'?NS:IS;document.getElementById('mode-normal').className='mode-btn'+(m==='normal'?' active':'');document.getElementById('mode-issue').className='mode-btn'+(m==='issue'?' active':'');resetAll();}
+function buildStrip(){const el=document.getElementById('step-strip');el.innerHTML='';steps.forEach((s,i)=>{const d=document.createElement('div');d.className='step-pill';d.id='pill-'+i;d.innerHTML=s.label+'<span class="pt">'+s.time+'</span>';d.onclick=()=>goStep(i);el.appendChild(d);});}
+function goStep(i){
+  curStep=i;const s=steps[i];
+  document.querySelectorAll('.step-pill').forEach((p,j)=>p.className='step-pill'+(j<i?' done':j===i?' active':''));
+  document.getElementById('d-title').textContent=s.title;
+  document.getElementById('d-body').textContent=s.body;
+  document.getElementById('t-time').textContent=s.time;
+  document.getElementById('t-fill').style.width=s.fill+'%';
+  document.getElementById('d-actors').innerHTML=s.actors.map(a=>`<span class="actor actor-${a.toLowerCase()}">${a}</span>`).join('');
+  if(i===steps.length-1)document.getElementById('s-time').textContent=s.time;
+  if(pRAF){cancelAnimationFrame(pRAF);pRAF=null;}
+  if(aRAF){cancelAnimationFrame(aRAF);aRAF=null;}
+  aAnims=(s.arrows||[]).map(a=>({...a,progress:0}));
+  drawMap(s.active,[]);
+  if(s.pulse.length)startPulse(s.active,s.pulse);
+  if(aAnims.length)startArrows(s.active,s.pulse);
+}
+function playScenario(){if(aTimer)return;curStep=-1;document.getElementById('s-time').textContent='-';const btn=document.getElementById('btn-play');btn.disabled=true;let i=0;function next(){if(i<steps.length){goStep(i++);aTimer=setTimeout(next,2000);}else{aTimer=null;btn.disabled=false;}}next();}
+function resetAll(){if(aTimer){clearTimeout(aTimer);aTimer=null;}if(pRAF){cancelAnimationFrame(pRAF);pRAF=null;}if(aRAF){cancelAnimationFrame(aRAF);aRAF=null;}curStep=-1;aAnims=[];document.getElementById('btn-play').disabled=false;buildStrip();document.getElementById('d-title').textContent='시나리오를 선택하세요';document.getElementById('d-body').textContent='재생 버튼을 눌러 Hub-Spoke 운영 흐름을 단계별로 확인하세요.';document.getElementById('t-time').textContent='T+0분';document.getElementById('t-fill').style.width='0%';document.getElementById('d-actors').innerHTML='';document.getElementById('s-time').textContent='-';drawMap([],[]);}
+function scaleNodes(){const W=C.width,H=C.height,sc=Math.min(W/760,H/500);SN={};for(const[k,v]of Object.entries(NODES))SN[k]={...v,x:v.bx*W,y:v.by*H,r:v.r*sc};}
+function drawArrowHead(tx,ty,dx,dy,sz,col){const a=Math.atan2(dy,dx);ctx.beginPath();ctx.moveTo(tx,ty);ctx.lineTo(tx+Math.cos(a+2.5)*sz,ty+Math.sin(a+2.5)*sz);ctx.lineTo(tx+Math.cos(a-2.5)*sz,ty+Math.sin(a-2.5)*sz);ctx.closePath();ctx.fillStyle=col;ctx.fill();}
+function drawTravelArrow(fk,tk,t,col){const a=SN[fk],b=SN[tk],dx=b.x-a.x,dy=b.y-a.y,len=Math.sqrt(dx*dx+dy*dy),nx=dx/len,ny=dy/len,sx=a.x+nx*a.r,sy=a.y+ny*a.r,ex=b.x-nx*b.r,ey=b.y-ny*b.r,trav=Math.sqrt((ex-sx)**2+(ey-sy)**2),tipX=sx+(ex-sx)*t,tipY=sy+(ey-sy)*t,tl=Math.min(28,trav*t);ctx.beginPath();ctx.moveTo(tipX-nx*tl,tipY-ny*tl);ctx.lineTo(tipX,tipY);ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.stroke();drawArrowHead(tipX,tipY,nx,ny,9,col);}
+function drawMap(active,pKeys){
+  const W=C.width,H=C.height;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#eeece6';ctx.lineWidth=0.5;
+  for(let x=0;x<W;x+=W/10){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=H/6){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  EDGES.forEach(e=>{const a=SN[e.from],b=SN[e.to],isA=active.includes(e.from)&&active.includes(e.to);ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.strokeStyle=isA?'#1D9E75':'#d0cec8';ctx.lineWidth=isA?1.8:1;ctx.setLineDash(isA?[]:[5,4]);ctx.stroke();ctx.setLineDash([]);});
+  aAnims.forEach(ar=>drawTravelArrow(ar.from,ar.to,ar.progress,ar.from==='ioc'?'#185FA5':'#1D9E75'));
+  for(const[k,n]of Object.entries(SN)){
+    const isA=active.includes(k),isP=pKeys.includes(k);
+    if(isP){ctx.beginPath();ctx.arc(n.x,n.y,n.r+15,0,Math.PI*2);ctx.fillStyle='rgba(226,75,74,.07)';ctx.fill();ctx.beginPath();ctx.arc(n.x,n.y,n.r+7,0,Math.PI*2);ctx.fillStyle='rgba(226,75,74,.13)';ctx.fill();}
+    if(isA&&!isP){ctx.beginPath();ctx.arc(n.x,n.y,n.r+4,0,Math.PI*2);ctx.fillStyle='rgba(0,0,0,.05)';ctx.fill();}
+    ctx.beginPath();ctx.arc(n.x,n.y,n.r,0,Math.PI*2);ctx.fillStyle=isP?'#fff0f0':(isA?n.fill:'#f4f2ec');ctx.fill();ctx.strokeStyle=isP?'#E24B4A':(isA?n.color:'#c8c6c0');ctx.lineWidth=isA||isP?2:.8;ctx.stroke();
+    const fs=Math.max(9,n.r*.52);ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font=`700 ${fs}px 'Noto Sans KR',sans-serif`;ctx.fillStyle=isP?'#A32D2D':(isA?n.tc:'#999');ctx.fillText(n.label,n.x,n.y-fs*.38);
+    ctx.font=`400 ${fs*.76}px 'Noto Sans KR',sans-serif`;ctx.fillStyle=isP?'#C03030':(isA?n.color+'bb':'#c0c0b8');ctx.fillText(n.sub,n.x,n.y+fs*.62);
+  }
+}
+function startArrows(active,pKeys){const SP=0.014;function frame(){let done=true;aAnims.forEach(ar=>{if(ar.progress<1){ar.progress=Math.min(1,ar.progress+SP);done=false;}});drawMap(active,pKeys);if(!done)aRAF=requestAnimationFrame(frame);}frame();}
+function startPulse(active,pKeys){let t=0;function frame(){drawMap(active,pKeys);aAnims.forEach(ar=>drawTravelArrow(ar.from,ar.to,ar.progress,ar.from==='ioc'?'#185FA5':'#1D9E75'));pKeys.forEach(k=>{const n=SN[k],ph=t%40,r=n.r+9+ph*.45,al=Math.max(0,.42-ph*.0105);ctx.beginPath();ctx.arc(n.x,n.y,r,0,Math.PI*2);ctx.strokeStyle=`rgba(226,75,74,${al})`;ctx.lineWidth=2;ctx.stroke();});t++;pRAF=requestAnimationFrame(frame);}frame();setTimeout(()=>{if(pRAF){cancelAnimationFrame(pRAF);pRAF=null;}},3500);}
+function resize(){const W=C.offsetWidth;if(!W)return;const H=460;if(C.width===W&&C.height===H)return;C.width=W;C.height=H;scaleNodes();const s=curStep>=0?steps[curStep]:null;drawMap(s?s.active:[],s?s.pulse:[]);}
+const ro=new ResizeObserver(()=>requestAnimationFrame(resize));
+ro.observe(C.parentElement);
+resize();buildStrip();drawMap([],[]);
+</script>
+</body>
+</html>
