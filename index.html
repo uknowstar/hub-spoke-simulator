@@ -24,10 +24,10 @@ header{background:#fff;border-bottom:1px solid var(--gray-200);padding:14px 28px
 .logo-mark svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .logo-text h1{font-size:14px;font-weight:700;letter-spacing:-.3px}
 .logo-text p{font-size:11px;color:var(--gray-600);font-weight:300;margin-top:1px}
-.tab-nav{display:flex;background:#fff;border-bottom:1px solid var(--gray-200);padding:0 28px;flex-shrink:0;overflow-x:auto}
-.tab-btn{padding:12px 18px;font-size:13px;font-weight:500;color:var(--gray-600);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .18s;font-family:inherit}
-.tab-btn:hover{color:var(--gray-900)}
-.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
+.tab-nav{display:flex;background:var(--gray-100);border-bottom:1px solid var(--gray-200);padding:6px 20px 0;flex-shrink:0;overflow-x:auto;gap:4px}
+.tab-btn{padding:9px 16px;font-size:12px;font-weight:500;color:var(--gray-600);background:transparent;border:none;border-radius:var(--r) var(--r) 0 0;cursor:pointer;white-space:nowrap;transition:all .18s;font-family:inherit;border-bottom:3px solid transparent}
+.tab-btn:hover{color:var(--gray-900);background:var(--gray-200)}
+.tab-btn.active{color:var(--blue-dk);background:#fff;border-bottom-color:var(--blue);font-weight:700;box-shadow:0 -1px 0 0 var(--gray-200),1px 0 0 0 var(--gray-200),-1px 0 0 0 var(--gray-200)}
 .page{display:none;flex:1;overflow-y:auto}
 .page.active{display:flex;flex-direction:column}
 /* simulator */
@@ -705,36 +705,54 @@ window.lsub=lsub;window.lselect=lselect;window.st2next=st2next;window.st2prev=st
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M5 2.5C5 1.67 5.67 1 6.5 1S8 1.67 8 2.5v4.8l1.2.7c.5.3.8.8.8 1.4v.1c0 1.4-1.1 2.5-2.5 2.5h-2C4.1 12 3 10.9 3 9.5v-3c0-.6.3-1.1.8-1.4L5 4.3V2.5z" stroke="#185FA5" stroke-width="1" fill="#E6F1FB"/></svg>
           <span style="font-size:11px;font-weight:500;color:var(--blue-dk)">IOC · Hub · Spoke 노드를 클릭해 보세요</span>
         </div>
-        <svg viewBox="0 0 360 340" style="display:block;width:100%">
+        <svg viewBox="0 0 400 340" style="display:block;width:100%">
           <defs><marker id="larr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
-          <line x1="180" y1="88" x2="100" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="180" y1="88" x2="262" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="82" y1="198" x2="38" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="96" y1="200" x2="108" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="108" y1="200" x2="178" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="258" y1="198" x2="218" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="268" y1="200" x2="288" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
-          <line x1="276" y1="198" x2="332" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <!-- IOC → Hub 엣지 -->
+          <line x1="200" y1="88" x2="110" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="200" y1="88" x2="292" y2="168" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <!-- Hub A → Spoke 1,2,3 -->
+          <line x1="96" y1="198" x2="34" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="110" y1="200" x2="100" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="124" y1="198" x2="166" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <!-- Hub B → Spoke 4,5,6 -->
+          <line x1="278" y1="198" x2="232" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="292" y1="200" x2="300" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <line x1="306" y1="198" x2="366" y2="268" stroke="#c8c6c0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#larr)" fill="none"/>
+          <!-- IOC -->
           <g style="cursor:pointer" onclick="lselect('ioc')">
-            <rect x="130" y="36" width="100" height="52" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.5"/>
-            <text x="180" y="58" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">IOC</text>
-            <text x="180" y="76" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#378ADD">통합운영센터</text>
+            <rect x="150" y="36" width="100" height="52" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="1.5"/>
+            <text x="200" y="58" text-anchor="middle" dominant-baseline="central" font-size="13" font-weight="500" fill="#0C447C">IOC</text>
+            <text x="200" y="76" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#378ADD">통합운영센터</text>
           </g>
+          <!-- Hub A, Hub B -->
           <g style="cursor:pointer" onclick="lselect('hub')">
-            <rect x="56" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
-            <text x="100" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub A</text>
-            <text x="100" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">강남 거점</text>
-            <rect x="218" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
-            <text x="262" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub B</text>
-            <text x="262" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">마포 거점</text>
+            <rect x="66" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+            <text x="110" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub A</text>
+            <text x="110" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">강남 거점</text>
+            <rect x="248" y="168" width="88" height="44" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="1.5"/>
+            <text x="292" y="186" text-anchor="middle" dominant-baseline="central" font-size="12" font-weight="500" fill="#085041">Hub B</text>
+            <text x="292" y="200" text-anchor="middle" dominant-baseline="central" font-size="10" fill="#1D9E75">마포 거점</text>
           </g>
+          <!-- Spoke 1~6: 간격 62px, 시작 x=10 -->
           <g style="cursor:pointer" onclick="lselect('spoke')">
-            <rect x="14" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="38" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 1</text><text x="38" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
-            <rect x="84" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="108" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 2</text><text x="108" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
-            <rect x="154" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="178" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 3</text><text x="178" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
-            <rect x="194" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="218" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 4</text><text x="218" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
-            <rect x="264" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="288" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 5</text><text x="288" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
-            <rect x="308" y="268" width="48" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/><text x="332" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 6</text><text x="332" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
+            <rect x="10"  y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="36"  y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 1</text>
+            <text x="36"  y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="74"  y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="100" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 2</text>
+            <text x="100" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="138" y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="164" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 3</text>
+            <text x="164" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
+            <rect x="210" y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="236" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 4</text>
+            <text x="236" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="274" y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="300" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 5</text>
+            <text x="300" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">소형</text>
+            <rect x="338" y="268" width="52" height="36" rx="6" fill="#FAEEDA" stroke="#854F0B" stroke-width="1"/>
+            <text x="364" y="282" text-anchor="middle" dominant-baseline="central" font-size="10" font-weight="500" fill="#633806">Spoke 6</text>
+            <text x="364" y="296" text-anchor="middle" dominant-baseline="central" font-size="9" fill="#854F0B">중형</text>
           </g>
         </svg>
         <div style="font-size:11px;color:var(--gray-400);text-align:center;margin-top:6px">IOC · Hub · Spoke를 클릭하세요</div>
